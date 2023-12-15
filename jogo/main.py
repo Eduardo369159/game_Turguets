@@ -24,6 +24,7 @@ logo_img = pygame.image.load('jogo\\imagens\\balas.ico')
 pygame.display.set_icon(logo_img)
 
 inimigos_img = pygame.image.load('jogo\\imagens\\inimigo.png')
+balas_inimigos = pygame.image.load('jogo\\imagens\\balas_inimigo.png')
 balas_img = pygame.image.load('jogo\\imagens\\balas.ico')
 nave1_img = pygame.image.load('jogo\\imagens\\nivel1.png')
 
@@ -55,7 +56,6 @@ class Player(pygame.sprite.Sprite):
                 all_sprites.add(bullet)
                 bullets.add(bullet)
                 self.last_shot_time = tempo
-                som_tiro.play()
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -63,6 +63,7 @@ class Bullet(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(balas_img, (15, 15))
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        som_tiro.play()
         self.speed = 6
 
     def update(self):
@@ -70,6 +71,19 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
+class Bullet_enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.transform.scale(balas_inimigos, (15, 15))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.speed = 4
+
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.bottom < 0:
+            self.kill()
+    
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -79,9 +93,17 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = random.randrange(WIDTH - self.rect.width)
         self.rect.y = random.randrange(-100, -40)
         self.speed = random.randrange(1, 4)
+        self.last_shot_time = pygame.time.get_ticks()
+        self.shoot_cooldown = random.randint(200, 500)
 
     def update(self):
         self.rect.y += self.speed
+        tempo = pygame.time.get_ticks()
+        if  tempo - self.last_shot_time > self.shoot_cooldown and player.rect.centery > self.rect.centery:
+            bullet = Bullet_enemy(self.rect.centerx, self.rect.bottom)
+            all_sprites.add(bullet)
+            bullet_enemy.add(bullet)
+
         if self.rect.top > HEIGHT + 10:
             self.rect.x = random.randrange(WIDTH - self.rect.width)
             self.rect.y = random.randrange(-100, -40)
@@ -90,6 +112,7 @@ class Enemy(pygame.sprite.Sprite):
 all_sprites = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 player = Player()
+bullet_enemy = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 all_sprites.add(player)
 
@@ -120,6 +143,11 @@ while running:
         bomba.play()
         pontos += 1
 
+    hits = pygame.sprite.spritecollide(player, bullet_enemy,True)
+    for hit in hits:
+        pontos -= 1
+        hit.kill()
+
     tela.fill(BLACK)
     all_sprites.draw(tela)
 
@@ -130,4 +158,3 @@ while running:
     clock.tick(FPS)
 
 pygame.quit()
-sys.exit()
