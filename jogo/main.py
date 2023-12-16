@@ -1,6 +1,7 @@
 import pygame
 import random
 from pygame import mixer
+import time
 
 pygame.init()
 pygame.mixer.init()
@@ -26,6 +27,7 @@ pygame.display.set_icon(logo_img)
 inimigos_img = pygame.image.load('jogo\\imagens\\inimigo.png')
 balas_inimigos = pygame.image.load('jogo\\imagens\\balas_inimigo.png')
 balas_img = pygame.image.load('jogo\\imagens\\balas.ico')
+balas2_img = pygame.image.load('jogo\\imagens\\bala3.png')
 nave1_img = pygame.image.load('jogo\\imagens\\nivel1.png')
 
 class Player(pygame.sprite.Sprite):
@@ -36,7 +38,9 @@ class Player(pygame.sprite.Sprite):
         self.rect.center = (WIDTH // 2, HEIGHT - 50)
         self.speed = 6
         self.last_shot_time = pygame.time.get_ticks()
+        self.last_shot_time_s = pygame.time.get_ticks()
         self.shoot_cooldown = 200
+        self.cooldown = 8000 
         musica.play()
 
     def update(self):
@@ -57,6 +61,16 @@ class Player(pygame.sprite.Sprite):
                 bullets.add(bullet)
                 self.last_shot_time = tempo
 
+        if keys[pygame.K_s]:
+            tempo = pygame.time.get_ticks()
+            if tempo - self.last_shot_time_s > self.cooldown:
+                bullet = Big_Bullet(self.rect.centerx, self.rect.top)
+                all_sprites.add(bullet)
+                big_bullet.add(bullet)
+                self.last_shot_time_s = tempo
+
+
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -65,6 +79,20 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.center = (x, y)
         som_tiro.play()
         self.speed = 6
+
+    def update(self):
+        self.rect.y -= self.speed
+        if self.rect.bottom < 0:
+            self.kill()
+
+class Big_Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.transform.scale(balas2_img, (300, 300))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        som_tiro.play()
+        self.speed = 3
 
     def update(self):
         self.rect.y -= self.speed
@@ -93,7 +121,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = random.randrange(WIDTH - self.rect.width)
         self.rect.y = random.randrange(-100, -40)
         self.speed = random.randrange(1, 4)
-        self.shoot_cooldown = random.randint(550, 800)
+        self.shoot_cooldown = random.randint(550, 1200)
         self.last_shot_time = 0
 
     def update(self):
@@ -115,6 +143,7 @@ all_sprites = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 player = Player()
 bullet_enemy = pygame.sprite.Group()
+big_bullet = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 all_sprites.add(player)
 
@@ -125,6 +154,7 @@ for _ in range(4):
     enemies.add(enemy)
 
 pontos = 0
+vida = 100
 font = pygame.font.Font(None, 20)
 
 clock = pygame.time.Clock()
@@ -147,16 +177,31 @@ while running:
 
     hits = pygame.sprite.spritecollide(player, bullet_enemy,True)
     for hit in hits:
-        pontos -= 1
+        if pontos <= 99:
+            vida -= 1
+        if pontos >= 100:
+            vida -= 2
+        if pontos >= 200:
+            vida -= 4
         hit.kill()
-        if pontos == 0:
+        if vida <= 0:
             player.kill()
+    
+    hits = pygame.sprite.groupcollide(big_bullet, enemies,False,True)
+    for hit in range(len(hits)):
+        enemy = Enemy()
+        all_sprites.add(enemy)
+        enemies.add(enemy)
+        bomba.play()
+        pontos += 1
 
     tela.fill(BLACK)
     all_sprites.draw(tela)
 
     pontos_texto = font.render(f'Pontos: {pontos}', True, WHITE)
     tela.blit(pontos_texto, (10, 10))
+    vida_player = font.render(f'Vida: {vida}%', True, WHITE)
+    tela.blit(vida_player, (10, 30))
 
     pygame.display.flip()
     clock.tick(FPS)
