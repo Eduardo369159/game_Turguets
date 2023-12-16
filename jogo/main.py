@@ -93,21 +93,23 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = random.randrange(WIDTH - self.rect.width)
         self.rect.y = random.randrange(-100, -40)
         self.speed = random.randrange(1, 4)
-        self.last_shot_time = pygame.time.get_ticks()
-        self.shoot_cooldown = random.randint(200, 500)
+        self.shoot_cooldown = random.randint(550, 800)
+        self.last_shot_time = 0
 
     def update(self):
         self.rect.y += self.speed
         tempo = pygame.time.get_ticks()
-        if  tempo - self.last_shot_time > self.shoot_cooldown and player.rect.centery > self.rect.centery:
-            bullet = Bullet_enemy(self.rect.centerx, self.rect.bottom)
-            all_sprites.add(bullet)
-            bullet_enemy.add(bullet)
+        if  tempo - self.last_shot_time > self.shoot_cooldown :
+            if player.rect.centery > self.rect.centery:
+                bullet = Bullet_enemy(self.rect.centerx, self.rect.bottom)
+                all_sprites.add(bullet)
+                bullet_enemy.add(bullet)
+                self.last_shot_time = tempo
 
         if self.rect.top > HEIGHT + 10:
             self.rect.x = random.randrange(WIDTH - self.rect.width)
             self.rect.y = random.randrange(-100, -40)
-            self.speed = random.randrange(1, 5)
+            self.speed = random.randrange(1, 3)
 
 all_sprites = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
@@ -147,6 +149,8 @@ while running:
     for hit in hits:
         pontos -= 1
         hit.kill()
+        if pontos == 0:
+            player.kill()
 
     tela.fill(BLACK)
     all_sprites.draw(tela)
